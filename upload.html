@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Image</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Upload Image for Complaint Resolution</h1>
+        <form id="upload-form" onsubmit="submitImage(event)">
+            <label for="image">Upload Image:</label>
+            <input type="file" id="image" accept="image/*" required><br><br>
+            <button type="submit" class="submit-button">Submit Image</button>
+        </form>
+    </div>
+
+    <script>
+    function submitImage(event) {
+        event.preventDefault();
+        
+        const imageInput = document.getElementById('image');
+        const file = imageInput.files[0];
+        
+        if (file) {
+            // Simulate image upload
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imageData = e.target.result; // Simulated image data
+                
+                // Get complaint ID from the URL
+                const complaintId = new URLSearchParams(window.location.search).get('complaintId');
+                
+                // Find the complaint and mark it as solved
+                const complaint = complaints.find(c => c.id == complaintId);
+                
+                if (complaint) {
+                    complaint.status = 'Solved'; // Update status to 'Solved'
+                    alert('Image uploaded successfully and complaint marked as solved.');
+                    
+                    // Redirect to the Municipal Dashboard with updated complaint status
+                    window.location.href = 'municipal-dashboard.html'; // Adjust the path if needed
+                }
+            };
+            reader.readAsDataURL(file); // Read the file to simulate upload
+            
+        } else {
+            alert('Please upload an image to mark the complaint as solved.');
+        }
+    }
+</script>
+
+</body>
+</html>

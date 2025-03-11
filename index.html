@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Civic Issues Reporting Portal</title>
+    <link rel="stylesheet" href="styles.css"> <!-- Link to your external CSS file -->
+</head>
+
+<body>
+    <div class="container">
+        <!-- Home Frame -->
+        <div id="home-frame" class="frame">
+            <h1 class="project-title">Civic Issues Reporting Portal</h1>
+            <p>Welcome to the Civic Issues Reporting Portal, a platform dedicated to improving our community by
+                addressing civic issues efficiently. Here, you can report various issues and engage with municipal
+                services.</p>
+            <h2>How It Works</h2>
+            <ul>
+                <li>1. Log in or register to access the system.</li>
+                about any civic issue.</li>
+                <li>3. Track the status of your complaint.</li>
+                <li>4. Municipal authorities will address your concerns.</li>
+            </ul>
+            <div class="button-container">
+                <button onclick="showOptions('login')">Login</button>
+                <button onclick="showOptions('register')">Register</button>
+            </div>
+        </div>
+
+        <!-- Options Frame -->
+        <div id="options-frame" class="frame hidden">
+            <div id="role-selection" class="button-container">
+                <h2 id="action-title">Select Your Role</h2>
+                <button onclick="showForm('end-user', selectedAction)">End User</button>
+                <button onclick="showForm('municipal', selectedAction)">Municipal Corporation</button>
+            </div>
+            <div id="form-container">
+                <!-- Login Form -->
+                <form id="login-form" class="hidden" onsubmit="loginUser(event)">
+                    <label for="login-username">Username:</label>
+                    <input type="text" id="login-username" name="username" required><br><br>
+                    <label for="login-password">Password:</label>
+                    <input type="password" id="login-password" name="password" required><br><br>
+                    <button type="submit" class="submit-button">Login</button>
+                    <button type="button" class="forgot-password" onclick="showForgotPassword()">Forgot
+                        Password?</button>
+                </form>
+
+                <!-- Registration Form -->
+                <form id="register-form" class="hidden" onsubmit="registerUser(event)">
+                    <label for="reg-email">Email:</label>
+                    <input type="email" id="reg-email" name="email" required><br><br>
+                    <label for="reg-password">Password:</label>
+                    <input type="password" id="reg-password" name="password" required
+                        pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}"
+                        title="Password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.">
+                    <br><br>
+                    <label for="role">Select Role:</label>
+                    <select id="role" name="role" required>
+                        <option value="">Select a role</option>
+                        <option value="End User">End User</option>
+                        <option value="Municipal Corporation">Municipal Corporation</option>
+                    </select><br><br>
+
+                    <label for="state">State:</label>
+                    <select id="state" name="state" required></select><br><br>
+                    <label for="district">District:</label>
+                    <select id="district" name="district" required></select><br><br>
+
+                    <label for="verification-code" id="verification-code-label" style="display: none;">Verification
+                        Code:</label>
+                    <input type="text" id="verification-code" name="verification-code" style="display: none;"><br><br>
+
+                    <label for="security-question">Security Question:</label>
+                    <select id="security-question" name="security-question" required>
+                        <option value="">Select a question</option>
+                        <option value="favorite-color">What is your favorite color?</option>
+                        <option value="pet-name">What is your pet's name?</option>
+                        <option value="birth-city">What city were you born in?</option>
+                        <option value="municipal-name">What is the name of your municipal corporation?</option>
+                        <option value="department">What department do you work in?</option>
+                        <option value="last-meeting">What was the date of your last municipal meeting?</option>
+                        <option value="office-address">What is the address of your municipal office?</option>
+                        <option value="mayor">Who is the current mayor of your municipality?</option>
+                    </select><br><br>
+
+                    <label for="security-answer">Answer:</label>
+                    <input type="text" id="security-answer" name="security-answer" required><br><br>
+
+                    <button type="submit" class="submit-button">Register</button>
+                </form>
+
+                <!-- Forgot Password Form -->
+                <form id="forgot-password-form" class="hidden">
+                    <label for="reset-username">Username:</label>
+                    <input type="text" id="reset-username" name="reset-username" required disabled><br><br>
+                    <label id="reset-question">Security Question:</label><br><br>
+                    <label for="reset-answer">Answer:</label>
+                    <input type="text" id="reset-answer" name="reset-answer" required><br><br>
+                    <button type="submit" class="submit-button" onclick="showPassword(event)">Show Password</button>
+                </form>
+
+                <!-- Complaint Form (End User) -->
+                <form id="complaint-form" class="hidden" onsubmit="submitComplaint(event)">
+                    <label for="complaint-name">Complaint Name:</label>
+                    <select id="complaint-name" name="complaint-name" required>
+                        <option value="">Select a civic issue</option>
+                        <option value="pothole">Pothole</option>
+                        <option value="waterlogging">Water Logging</option>
+                        <option value="dustbin">Overflowing Dustbin</option>
+                        <option value="traffic">Traffic Congestion</option>
+                        <option value="water">Contaminated Water</option>
+                        <option value="dumping">Illegal Dumping</option>
+                        <option value="streetlight">Dysfunctional Streetlights</option>
+                        <option value="sidewalks">Broken Sidewalks</option>
+                        <option value="animals">Stray Animals</option>
+                        <option value="others">Others</option>
+                    </select><br><br>
+
+                    <label for="complaint-description">Complaint Description:</label>
+                    <textarea id="complaint-description" name="complaint-description" rows="4"
+                        required></textarea><br><br>
+
+                    <button type="button" onclick="openCamera()">Open Camera</button><br><br>
+
+                    <div id="camera-container" class="hidden">
+                        <video id="video" autoplay></video>
+                        <button type="button" onclick="capture()">Capture</button>
+                    </div><br><br>
+
+                    <button type="submit" class="submit-button">Submit Complaint</button>
+                </form>
+
+                <!-- Button to view previously lodged complaints, hidden by default -->
+                <div class="button-container hidden" id="logged-complaints-button-container">
+                    <button type="button" onclick="showLoggedComplaints()" class="blue-button">Previously Lodged
+                        Complaints</button>
+                </div>
+
+                <!-- Logged Complaints Section -->
+                <div id="logged-complaints" class="hidden">
+                    <h2>Your Logged Complaints</h2>
+                    <table id="logged-complaints-table">
+                        <thead>
+                            <tr>
+                                <th>Complaint Name</th>
+                                <th>Description</th>
+                                <th>Status</th>
+                                <th>Created At</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logged-complaints-body">
+                            <!-- Previously lodged complaints will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="button-container">
+                <button class="back-button" onclick="backToMain()">Back</button>
+            </div>
+        </div>
+
+        <!-- Municipal Corporation Dashboard -->
+        <div id="municipal-dashboard" class="frame municipal-dashboard-frame hidden">
+            <h1>Municipal Corporation Dashboard</h1>
+            <div class="dashboard-sections">
+                <div class="section" id="municipal-corp-section">
+                    <h2>Municipal Corporation Complaints</h2>
+                    <div class="table-container">
+                        <table id="municipal-complaints-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 10%;">Sr. No.</th>
+                                    <th style="width: 20%;">Name</th> <!-- Name of the complaint type -->
+                                    <th style="width: 25%;">Description</th>
+                                    <th style="width: 10%;">Status</th>
+                                    <th style="width: 15%;">Created At</th>
+									<th style="width: 15%;">Time Remaining</th>
+                                    <th style="width: 10%;">Image</th>
+                                    <th style="width: 10%;">Location</th>
+                                    <th style="width: 10%;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="municipal-complaints-table-body">
+                                <!-- Municipal complaints data will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>Contact us: <a href="mailto:civicissuesportal@gmail.com">civicissuesportal@gmail.com</a></p>
+        <p>&copy; 2024 Civic Issues Reporting Portal. All Rights Reserved.</p>
+    </footer>
+
+    <script src="scripts.js"></script> <!-- Link to your JavaScript file -->
+</body>
+
+</html>

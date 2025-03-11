@@ -1,0 +1,364 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    /* Allow footer to be at the bottom */
+    min-height: 100vh;
+    /* Full viewport height */
+    margin: 0;
+    background-color: #f4f4f4;
+}
+
+.container {
+    flex: 1;
+    /* Allows the container to grow */
+    width: 100%;
+    max-width: 1200px;
+    /* Increase max width for overall layout */
+    padding: 20px;
+    margin: auto;
+    /* Center the container */
+}
+
+/* Frame style for non-municipal sections */
+.frame {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-align: left;
+    /* Align text to the left for forms */
+    max-width: 400px;
+    /* Set a smaller max width for the frame */
+    width: 100%;
+    /* Ensure the frame takes full width */
+    margin: 20px auto;
+    /* Center the frame horizontally */
+}
+
+/* Center buttons in a separate container */
+.button-container {
+    display: flex;
+    flex-direction: column;
+    /* Stack elements vertically */
+    align-items: center;
+    /* Center all items horizontally */
+    margin: 20px 0;
+    /* Margin for spacing */
+}
+
+.button-group {
+    display: flex;
+    /* Keep buttons in a row */
+    flex-direction: column;
+    /* Stack buttons vertically */
+    justify-content: center;
+    /* Center buttons horizontally */
+    align-items: center;
+    /* Center buttons vertically */
+    margin-top: 10px;
+    /* Optional: space between the title and buttons */
+}
+
+/* Existing styles remain unchanged */
+.hidden {
+    display: none;
+}
+
+.project-title {
+    font-size: 30px;
+    /* Larger title */
+    margin-bottom: 15px;
+    /* Spacing below the title */
+}
+
+h2 {
+    color: #007bff;
+    /* Highlight headings with primary color */
+}
+
+ul {
+    list-style-type: none;
+    /* Remove bullet points from list */
+    padding: 0;
+}
+
+ul li {
+    background: #e7f0ff;
+    /* Light blue background for list items */
+    padding: 10px;
+    margin: 5px 0;
+    /* Spacing between list items */
+    border-radius: 5px;
+    /* Rounded corners */
+}
+
+button {
+    background-color: #007bff;
+    /* Primary button color */
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    margin: 10px;
+    /* Uniform margin around buttons */
+    font-size: 16px;
+}
+
+button:hover {
+    background-color: #0056b3;
+    /* Darker shade on hover */
+}
+
+button:focus {
+    outline: 2px solid #0056b3;
+    outline-offset: 2px;
+}
+
+.back-button {
+    background-color: #6c757d;
+    font-size: 14px;
+}
+
+.back-button:hover {
+    background-color: #5a6268;
+}
+
+/* New blue-button style for 'Previously Lodged Complaints' button */
+.blue-button {
+    background-color: #007bff;
+    /* Blue color */
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 10px;
+    /* Add space above */
+}
+
+.blue-button:hover {
+    background-color: #0056b3;
+    /* Darker blue on hover */
+}
+
+#form-container {
+    text-align: left;
+}
+
+form {
+    margin-top: 20px;
+}
+
+label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 5px;
+    font-size: 16px;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="email"],
+textarea,
+select {
+    width: 100%;
+    /* Set all inputs to 100% width */
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    /* Ensures padding is included in width */
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    outline: 2px solid #0056b3;
+    outline-offset: 2px;
+}
+
+.submit-button {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+    font-size: 16px;
+}
+
+.submit-button:hover {
+    background-color: #218838;
+}
+
+.forgot-password {
+    background: none;
+    color: #007bff;
+    text-decoration: underline;
+    margin-top: 10px;
+    font-size: 14px;
+    cursor: pointer;
+    border: none;
+    padding: 0;
+}
+
+.forgot-password:hover {
+    color: #0056b3;
+    background: none;
+}
+
+#camera-container {
+    position: relative;
+    width: 100%;
+    height: auto;
+    max-height: 300px;
+}
+
+#video {
+    width: 100%;
+    height: auto;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+/* Specific style for larger municipal dashboard */
+.municipal-dashboard-frame {
+    max-width: 1000px;
+    /* Large width for municipal dashboard */
+    width: 100%;
+    /* Full width available */
+    margin: 20px auto;
+    /* Center it horizontally */
+    padding: 20px;
+    background-color: white;
+    /* Set the background color */
+    border-radius: 8px;
+    /* Rounded corners */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    /* Add a shadow for clarity */
+}
+
+/* Table styling for the municipal dashboard */
+.table-container {
+    overflow-x: auto;
+    /* Allow horizontal scrolling if needed */
+}
+
+#municipal-complaints-table {
+    width: 100%;
+    /* Table takes full width */
+    border-collapse: collapse;
+    /* Remove gaps between table cells */
+}
+
+#municipal-complaints-table th,
+#municipal-complaints-table td {
+    border: 1px solid #ddd;
+    /* Add border to table cells */
+    padding: 8px;
+    /* Padding for table cells */
+    text-align: left;
+    /* Align text to the left */
+}
+
+#municipal-complaints-table th {
+    background-color: #007bff;
+    /* Header background color */
+    color: white;
+    /* Header text color */
+}
+
+#municipal-complaints-table tr:nth-child(even) {
+    background-color: #f2f2f2;
+    /* Stripe for even rows */
+}
+
+/* Adjust column sizes */
+#municipal-complaints-table th:nth-child(2) {
+    width: 20%;
+    /* Adjust width for Complaint Type */
+}
+
+#municipal-complaints-table th:nth-child(3) {
+    width: 25%;
+    /* Adjust width for Complaint Name */
+}
+
+#municipal-complaints-table th:nth-child(4) {
+    width: 25%;
+    /* Adjust width for Address */
+}
+
+#municipal-complaints-table th:nth-child(5) {
+    width: 15%;
+    /* Adjust width for Status */
+}
+
+#municipal-complaints-table th:nth-child(6) {
+    width: 15%;
+    /* Adjust width for Actions */
+}
+
+/* Footer styles */
+.footer {
+    text-align: center;
+    /* Center align text */
+    padding: 20px;
+    background-color: #f1f1f1;
+    position: relative;
+    /* Necessary for absolute positioning of elements if needed */
+    width: 100%;
+}
+
+.footer p {
+    margin: 5px 0;
+    /* Add some margin for spacing */
+}
+
+.footer a {
+    text-decoration: none;
+    /* Remove underline from links */
+    color: #007bff;
+    /* Primary color for the link */
+}
+
+.footer a:hover {
+    text-decoration: underline;
+    /* Underline on hover */
+}
+
+/* Table styling for the logged complaints and municipal complaints */
+table,
+th,
+td {
+    border: 1px solid #ddd;
+    /* Light border around all table elements */
+    padding: 8px;
+    /* Add padding for readability */
+    border-collapse: collapse;
+    /* Collapse borders to avoid double lines */
+}
+
+table {
+    width: 100%;
+    /* Full width */
+    margin-top: 10px;
+    /* Add some space above the table */
+}
+
+th {
+    background-color: #007bff;
+    /* Header background color */
+    color: white;
+    /* Header text color */
+    text-align: left;
+}
+
+tr:nth-child(even) {
+    background-color: #f9f9f9;
+    /* Stripe for even rows */
+}
