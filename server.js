@@ -1,19 +1,21 @@
-const { MongoClient, ObjectId } = require('mongodb'); // Import both MongoClient and ObjectId only once
+const { MongoClient, ObjectId } = require('mongodb');
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const multer = require('multer'); // For handling file uploads
+const fs = require('fs');
+const { exec } = require('child_process'); // To run Python script
+
 const app = express();
 const port = 3000;
 
 // Middleware
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '50mb' }));
 app.use(cors());
 
 // Replace with your MongoDB connection string
-const uri = "mongodb://localhost:27017"; // Modify if your MongoDB is hosted elsewhere
+const uri = "mongodb://localhost:27017";
 const client = new MongoClient(uri);
-
-// Database and collection setup
 const dbName = 'civicIssues';
 let db;
 
@@ -29,11 +31,13 @@ async function connectDB() {
 }
 connectDB();
 
+// Configure image storage
+const upload = multer({ dest: 'uploads/' });
+
 // Route to register a user
 app.post('/registerUser', async (req, res) => {
   const { email, password, state, district, securityQuestion, securityAnswer, role, verificationCode } = req.body;
 
-  // Handle Municipal Corporation registration with verification code
   if (role === 'Municipal Corporation' && verificationCode !== 6978) {
     return res.status(400).json({ success: false, message: 'Incorrect verification code.' });
   }
@@ -69,15 +73,45 @@ app.post('/loginUser', async (req, res) => {
   }
 });
 
+// Route to verify pothole using AI model
+app.post('/verifyPothole', upload.single('image'), async (req, res) => {
+  try {
+    const base64Data = req.body.image.replace(/^data:image\/jpeg;base64,/, "");
+    const imagePath = `uploads/pothole_test.jpg`;
+
+    // Save image to server
+    fs.writeFileSync(imagePath, base64Data, 'base64');
+
+    // Run Python model
+    exec(`python3 predict.py ${imagePath}`, (error, stdout, stderr) => {
+      if (error) {
+        console.error('Error running model:', stderr);
+        return res.status(500).json({ success: false, message: 'Model execution error' });
+      }
+      
+      const result = stdout.trim();
+      const isPothole = result.includes('Pothole detected');
+
+      res.json({ success: true, isPothole });
+    });
+
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ success: false, message: 'Failed to process image' });
+  }
+});
+
 // Route to submit a complaint
 app.post('/submitComplaint', async (req, res) => {
   console.log("Received complaint data:", req.body);
   const { name, description, status, createdAt, image } = req.body;
   const location = "Lat: 19.0673, Lon: 72.9892";
   const createdAtIST = createdAt ? new Date(createdAt).toISOString() : new Date().toISOString();
+  
   // Set deadline (7 days from createdAt)
   const deadline = new Date(createdAtIST);
   deadline.setDate(deadline.getDate() + 7);
+  
   const complaint = { name, description, status, createdAt: createdAtIST, deadline: deadline.toISOString(), image, location };
 
   try {
@@ -95,7 +129,7 @@ app.get('/complaints', async (req, res) => {
   try {
     const collection = db.collection('complaints');
     const complaints = await collection.find({}).toArray();
-    // Group complaints by type and location
+
     const groupedComplaints = {};
     complaints.forEach(complaint => {
       const key = `${complaint.name}-${complaint.location}`;
@@ -104,12 +138,13 @@ app.get('/complaints', async (req, res) => {
       }
       groupedComplaints[key].push(complaint);
     });
-    // Convert object to array and sort to show duplicates first
+
     const sortedComplaints = Object.values(groupedComplaints).flat().sort((a, b) => {
       const keyA = `${a.name}-${a.location}`;
       const keyB = `${b.name}-${b.location}`;
-      return groupedComplaints[keyB].length - groupedComplaints[keyA].length; // Sort by number of duplicates
+      return groupedComplaints[keyB].length - groupedComplaints[keyA].length;
     });
+
     res.status(200).json(sortedComplaints);
   } catch (error) {
     console.error('Error fetching complaints:', error);
@@ -120,16 +155,19 @@ app.get('/complaints', async (req, res) => {
 // Route to mark a complaint as solved
 app.put('/markAsSolved/:id', async (req, res) => {
   const complaintId = req.params.id;
-  const { image } = req.body; // Receive solved image data if provided
+  const { image } = req.body;
+
   try {
     let updateData = { status: 'Solved' };
     if (image) {
-      updateData.solvedImage = image; // Store solved image if provided
+      updateData.solvedImage = image;
     }
+
     const result = await db.collection('complaints').updateOne(
       { _id: new ObjectId(complaintId) },
       { $set: updateData }
     );
+
     if (result.modifiedCount > 0) {
       res.status(200).json({ message: 'Complaint marked as solved' });
     } else {
