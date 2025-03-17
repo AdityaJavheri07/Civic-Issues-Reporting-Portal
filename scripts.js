@@ -461,74 +461,52 @@ function capture() {
     canvas.height = video.videoHeight;
     const context = canvas.getContext('2d');
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
-const now = new Date();
-    const dateTime = `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
-    // Set fixed coordinates for Mumbai, India
-    const fixedLatitude = 19.0673;  // Latitude
-    const fixedLongitude = 72.9892; // Longitude
-    const location = `Lat: ${fixedLatitude.toFixed(4)}, Lon: ${fixedLongitude.toFixed(4)}`;
+    
+    const imageData = canvas.toDataURL('image/jpeg'); // Convert to Base64
 
-    // Convert image to grayscale
-    const grayData = [];
-    for (let i = 0; i < data.length; i += 4) {
-        const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-        grayData.push(gray);
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date().toISOString().split('T')[0];
+
+    // Get stored data from localStorage
+    let storedData = JSON.parse(localStorage.getItem('noPotholeCount')) || {};
+
+    // Reset count if it's a new day
+    if (storedData.date !== today) {
+        storedData = { date: today, count: 0 };
     }
 
-    // Apply Laplacian operator
-    const laplacianData = [];
-    const width = canvas.width;
-    const height = canvas.height;
-    for (let y = 1; y < height - 1; y++) {
-        for (let x = 1; x < width - 1; x++) {
-            const i = y * width + x;
-            const laplacian = (
-                -grayData[i - width - 1] - grayData[i - width] - grayData[i - width + 1] +
-                -grayData[i - 1] + 8 * grayData[i] - grayData[i + 1] +
-                -grayData[i + width - 1] - grayData[i + width] - grayData[i + width + 1]
-            );
-            laplacianData.push(laplacian);
+    // If the user has exceeded 3 "No Pothole Detected" alerts, block submission
+    if (storedData.count >= 3) {
+        alert("🚨 You have exceeded the daily limit of 3 failed pothole detections. Complaints cannot be submitted today.");
+        return;
+    }
+
+    // Send the image to backend for pothole verification
+    fetch('http://localhost:3000/verifyPothole', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: imageData })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.isPothole) {
+            alert('✅ Pothole detected! Proceeding with complaint submission.');
+        } else {
+            alert('⚠ No pothole detected. Please check the image.');
+
+            // Increment "No Pothole Detected" counter
+            storedData.count += 1;
+            localStorage.setItem('noPotholeCount', JSON.stringify(storedData));
+
+            // If user reaches the limit, block further complaints
+            if (storedData.count >= 3) {
+                alert("🚨 You have reached the daily limit of failed pothole detections. No more complaints can be submitted today.");
+            }
         }
-    }
-
-    // Calculate variance of Laplacian
-    const mean = laplacianData.reduce((sum, value) => sum + value, 0) / laplacianData.length;
-    const variance = laplacianData.reduce((sum, value) => sum + (value - mean) ** 2, 0) / laplacianData.length;
-
-    // Check if image is blurred
-    const threshold = 100; // Adjust threshold as needed
-    if (variance < threshold) {
-        alert('The captured image is blurred. Please retake the photo.');
-    } else {
-        alert('Image is clear.');
-        // Proceed with the rest of the capture logic
-fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${fixedLatitude}&lon=${fixedLongitude}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.error) {
-                throw new Error(data.error);
-            }
-            const address = data.display_name;
-            const imageData = canvas.toDataURL('image/png');
-
-            alert(`Image captured with date and time: ${dateTime}\nLocation: ${location}\nAddress: ${address}`);
-        })
-        .catch(error => {
-            console.error('Error fetching address:', error); // Log the error
-            alert(`Unable to retrieve address: ${error.message}`);
-        });
-
-    document.getElementById('camera-container').classList.add('hidden'); // Hide camera after capture
-    }
-
+    })
+    .catch(error => console.error('Error:', error));
 }
+
 
 // Function to go back to the complaint form from logged complaints
 function backToMain() {
