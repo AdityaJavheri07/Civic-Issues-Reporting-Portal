@@ -73,24 +73,48 @@ app.post('/loginUser', async (req, res) => {
   }
 });
 
-// Route to verify pothole using AI model
 app.post('/verifyPothole', upload.single('image'), async (req, res) => {
   try {
+    const email = req.body.email;  // Ensure the frontend sends user email
     const base64Data = req.body.image.replace(/^data:image\/jpeg;base64,/, "");
     const imagePath = `uploads/pothole_test.jpg`;
 
-    // Save image to server
     fs.writeFileSync(imagePath, base64Data, 'base64');
 
-    // Run Python model
-    exec(`python3 predict.py ${imagePath}`, (error, stdout, stderr) => {
+    const userCollection = db.collection('users');
+    const user = await userCollection.findOne({ email });
+
+    // Check if user is blocked
+    if (user && user.blockedUntil && new Date(user.blockedUntil) > new Date()) {
+      return res.status(403).json({ success: false, message: 'User temporarily blocked. Try again later.' });
+    }
+
+    exec(`python3 predict.py ${imagePath}`, async (error, stdout, stderr) => {
       if (error) {
         console.error('Error running model:', stderr);
         return res.status(500).json({ success: false, message: 'Model execution error' });
       }
-      
+
       const result = stdout.trim();
       const isPothole = result.includes('Pothole detected');
+
+      if (!isPothole) {
+        let failedAttempts = user?.failedAttempts ? user.failedAttempts + 1 : 1;
+
+        if (failedAttempts >= 3) {
+          const blockTime = new Date();
+          blockTime.setDate(blockTime.getDate() + 1);
+          await userCollection.updateOne({ email }, { $set: { blockedUntil: blockTime, failedAttempts: 0 } }, { upsert: true });
+
+          return res.status(403).json({ success: false, message: 'Too many failed attempts. User blocked for 24 hours.' });
+        } else {
+          await userCollection.updateOne({ email }, { $set: { failedAttempts } }, { upsert: true });
+        }
+
+        return res.json({ success: true, isPothole: false, message: `Attempt ${failedAttempts}/3` });
+      } else {
+        await userCollection.updateOne({ email }, { $set: { failedAttempts: 0 } });
+      }
 
       res.json({ success: true, isPothole });
     });
@@ -101,17 +125,18 @@ app.post('/verifyPothole', upload.single('image'), async (req, res) => {
   }
 });
 
+
 // Route to submit a complaint
 app.post('/submitComplaint', async (req, res) => {
   console.log("Received complaint data:", req.body);
   const { name, description, status, createdAt, image } = req.body;
   const location = "Lat: 19.0673, Lon: 72.9892";
   const createdAtIST = createdAt ? new Date(createdAt).toISOString() : new Date().toISOString();
-  
+ 
   // Set deadline (7 days from createdAt)
   const deadline = new Date(createdAtIST);
   deadline.setDate(deadline.getDate() + 7);
-  
+ 
   const complaint = { name, description, status, createdAt: createdAtIST, deadline: deadline.toISOString(), image, location };
 
   try {
