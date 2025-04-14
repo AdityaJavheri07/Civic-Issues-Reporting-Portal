@@ -360,22 +360,14 @@ function showPassword(event) {
     }
 }
 
-// Function to handle complaint submission
 function submitComplaint(event) {
-    event.preventDefault();
-event.preventDefault();
-   
-    let blockTime = localStorage.getItem("blockTime");
+    event.preventDefault(); // Prevent default form submission
 
-    if (blockTime && Date.now() - parseInt(blockTime) < 24 * 60 * 60 * 1000) {
-        alert("You are blocked from submitting complaints for 24 hours.");
-        return;
-    }
     const complaintName = document.getElementById('complaint-name').value;
     const complaintDescription = document.getElementById('complaint-description').value;
     const video = document.getElementById('video');
 
-    // Capture image data
+    // Retrieve video frame
     const canvas = document.createElement('canvas');
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -383,67 +375,74 @@ event.preventDefault();
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
     const imageData = canvas.toDataURL('image/jpeg');
 
-    // Get today's date in YYYY-MM-DD format
-    const today = new Date().toISOString().split('T')[0];
-    // Get stored data from localStorage
-    let storedData = JSON.parse(localStorage.getItem('noPotholeCount')) || {};
+    // Step for Blurriness detection
+    const variance = detectBlurriness(imageData);
 
-    // Reset count if it's a new day
-    if (storedData.date !== today) {
-        storedData = { date: today, count: 0 };
+    if (variance < 100) {
+        alert('The captured image is blurred. Please retake the photo.');
+        return;
     }
 
-    // If the user has exceeded 3 "No Pothole Detected" alerts, block submission
-    if (storedData.count >= 3) {
-        alert("🚨 You have exceeded the daily limit of 3 failed pothole detections. Complaints cannot be submitted today.");
-        return; // Prevent submission
-    }
+    // Only proceed with pothole detection if "Pothole" is selected
+    if (complaintName === "pothole") {
+        const userEmail = localStorage.getItem("userEmail"); // Ensure user is logged in
+        let failedAttempts = parseInt(localStorage.getItem(`failedAttempts_${userEmail}`) || "0");
 
-    // Send the image to backend for pothole verification
-    fetch('http://localhost:3000/verifyPothole', {
+        fetch('http://localhost:3000/verifyPothole', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: imageData, email: userEmail }) // Including user email
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.isPothole) {
+                alert('\u2705 Pothole detected! Proceeding with complaint submission.');
+                submitToBackend(complaintName, complaintDescription, imageData); // Submit complaint
+            } else {
+                failedAttempts++;
+                localStorage.setItem(`failedAttempts_${userEmail}`, failedAttempts); // Increment failed attempts
+                if (failedAttempts >= 3) {
+                    alert("Max attempts reached! You are blocked for 24 hours.");
+                    // Additional logic to block the user for 24 hours can be added here
+                } else {
+                    alert(`\u26a0 No pothole detected. Attempt ${failedAttempts}/3.`);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error in pothole detection.');
+        });
+    } else {
+        // For other complaint types, submit directly
+        submitToBackend(complaintName, complaintDescription, imageData);
+    }
+}
+
+// Function to submit complaint to backend
+function submitToBackend(complaintName, complaintDescription, imageData) {
+    fetch('http://localhost:3000/submitComplaint', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: imageData })
+        body: JSON.stringify({
+            name: complaintName,
+            description: complaintDescription,
+            status: 'Pending',
+            createdAt: new Date().toISOString(),
+            image: imageData
+        })
     })
     .then(response => response.json())
     .then(data => {
-        if (data.isPothole) {
-            alert('✅ Pothole detected! Proceeding with complaint submission.');
-            // Proceed with complaint submission
-            const complaintData = {
-                name: complaintName,
-                description: complaintDescription,
-                status: 'Pending',
-                createdAt: new Date().toISOString(), // Send ISO formatted date
-                image: imageData
-            };
-            fetch('http://localhost:3000/submitComplaint', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(complaintData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert(data.message);
-                console.log('Complaint submitted:', data.result);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Failed to submit the complaint.');
-            });
-        } else {
-            alert('⚠ No pothole detected. Please check the image.');
-            // Increment "No Pothole Detected" counter
-            storedData.count += 1;
-            localStorage.setItem('noPotholeCount', JSON.stringify(storedData));
-            // If user reaches the limit, block further complaints
-            if (storedData.count >= 3) {
-                alert("🚨 You have reached the daily limit of failed pothole detections. No more complaints can be submitted today.");
-            }
-        }
+        alert(data.message);
+        console.log('Complaint submitted:', data.result);
     })
-    .catch(error => console.error('Error:', error));
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to submit the complaint.');
+    });
 }
+
 
 async function verifyPothole(imageData) {
     const email = localStorage.getItem("userEmail");
@@ -539,7 +538,6 @@ function openCamera() {
 function capture() {
     let userEmail = localStorage.getItem("userEmail");
 
-    // Fix: Ensure the user is logged in before proceeding
     if (!userEmail || userEmail.trim() === "") {
         alert("User not logged in. Please log in to continue.");
         return;
@@ -548,20 +546,17 @@ function capture() {
     let failedAttempts = parseInt(localStorage.getItem(`failedAttempts_${userEmail}`) || "0");
     let blockTime = localStorage.getItem(`blockTime_${userEmail}`);
 
-    // Check if user is blocked
     if (blockTime && Date.now() - parseInt(blockTime) < 24 * 60 * 60 * 1000) {
         alert("Max attempts reached! You are blocked for 24 hours.");
         return;
     }
 
-    // Check if user exceeded 3 failed attempts
     if (failedAttempts >= 3) {
         localStorage.setItem(`blockTime_${userEmail}`, Date.now());
         alert("Max attempts reached! You are blocked for 24 hours.");
         return;
     }
 
-    // Proceed with capturing the image
     const video = document.getElementById("video");
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d");
@@ -570,52 +565,49 @@ function capture() {
     canvas.height = video.videoHeight;
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    // Get image data from the canvas
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-
-    // Check blurriness
     const variance = detectBlurriness(imageData.data);
+
     if (variance < 100) {
         alert("The captured image is blurred. Please retake the photo.");
         return;
     }
 
-    // Image is clear; show confirmation dialog
-    const confirmClearImage = confirm("The image is clear. Do you want to proceed with pothole detection?");
+    const complaintType = document.getElementById("complaint-name").value;
+    const imageDataURL = canvas.toDataURL("image/jpeg");
+
+    const confirmClearImage = confirm(`The image is clear. Do you want to proceed with ${complaintType} detection?`);
     if (!confirmClearImage) {
-        alert("You chose not to proceed with pothole detection.");
+        alert("You chose not to proceed with detection.");
         return;
     }
 
-    // Convert to image data URL
-    const imageDataURL = canvas.toDataURL("image/jpeg");
-
-    // Send image for pothole verification
-    fetch("http://localhost:3000/verifyPothole", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: imageDataURL, email: userEmail }) // Send user email
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.isPothole) {
-            alert("✅ Pothole detected! Proceeding with complaint submission.");
-            localStorage.setItem(`failedAttempts_${userEmail}`, "0"); // Reset on success
-        } else {
-            failedAttempts++;
-            localStorage.setItem(`failedAttempts_${userEmail}`, failedAttempts);
-
-            if (failedAttempts >= 3) {
-                localStorage.setItem(`blockTime_${userEmail}`, Date.now());
-                alert("Max attempts reached! You are blocked for 24 hours.");
+    if (complaintType === "pothole") {
+        fetch("http://localhost:3000/verifyPothole", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image: imageDataURL, email: userEmail })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.isPothole) {
+                alert("✅ Pothole detected! Proceeding with complaint submission.");
+                localStorage.setItem(`failedAttempts_${userEmail}`, "0");
             } else {
-                alert(`⚠️ No pothole detected. Failed attempt ${failedAttempts}/3.`);
-            }
-        }
-    })
-    .catch(error => console.error("Error:", error));
-}
+                failedAttempts++;
+                localStorage.setItem(`failedAttempts_${userEmail}`, failedAttempts);
 
+                if (failedAttempts >= 3) {
+                    localStorage.setItem(`blockTime_${userEmail}`, Date.now());
+                    alert("Max attempts reached! You are blocked for 24 hours.");
+                } else {
+                    alert(`⚠️ No pothole detected. Failed attempt ${failedAttempts}/3.`);
+                }
+            }
+        })
+        .catch(error => console.error("Error:", error));
+    }
+}
 
 
 
@@ -919,4 +911,18 @@ document.addEventListener('DOMContentLoaded', () => {
 document.getElementById('role').addEventListener('change', function () {
   const selectedRole = this.value;
   updateFormVisibility(selectedRole);
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    const chatContainer = document.getElementById("chat-container");
+    const toggleButton = document.getElementById("toggle-chatbot");
+    const closeButton = document.getElementById("close-chatbot");
+
+    toggleButton.addEventListener("click", function () {
+        chatContainer.style.display = "block"; // Show chatbot
+    });
+
+    closeButton.addEventListener("click", function () {
+        chatContainer.style.display = "none"; // Hide chatbot
+    });
 });
