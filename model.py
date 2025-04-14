@@ -2,6 +2,9 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import matplotlib.pyplot as plt
+import numpy as np
+import cv2
+import sys
 import os
 
 # Set dataset path
@@ -70,8 +73,31 @@ model.save("pothole_detector.h5")
 
 # Plot training results
 plt.plot(history.history['accuracy'], label='accuracy')
-plt.plot(history.history['val_accuracy'], label = 'val_accuracy')
+plt.plot(history.history['val_accuracy'], label='val_accuracy')
 plt.xlabel('Epoch')
 plt.ylabel('Accuracy')
 plt.legend()
 plt.show()
+
+# Load the trained model for prediction
+model = tf.keras.models.load_model("pothole_detector.h5")
+
+def preprocess_image(image_path):
+    img = cv2.imread(image_path)
+    img = cv2.resize(img, (128, 128))  # Resize to model input size
+    img = img / 255.0  # Normalize
+    img = np.expand_dims(img, axis=0)  # Add batch dimension
+    return img
+
+def predict(image_path):
+    image = preprocess_image(image_path)
+    prediction = model.predict(image)[0][0]  # Binary classification output
+
+    if prediction > 0.5:
+        return "Pothole detected"
+    else:
+        return "No pothole detected"
+
+if __name__ == "__main__":
+    image_path = sys.argv[1]
+    print(predict(image_path))
