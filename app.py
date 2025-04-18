@@ -1,108 +1,91 @@
-from flask import Flask, request, jsonify, render_template_string
-from pymongo import MongoClient
-from datetime import datetime
-import serial
-import json
-from threading import Thread
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import numpy as np
+from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing import image
+import cv2
+import base64
+import os
 
-# MongoDB Atlas URI
-MONGO_URI = "mongodb+srv://samuelrod2476:root@cluster0.unblgut.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0&tlsAllowInvalidCertificates=true"
-
-# Connect to MongoDB
-client = MongoClient(MONGO_URI)
-db = client['water_quality']
-collection = db['readings']
-
-# Flask app
 app = Flask(__name__)
+CORS(app)
 
-# Global variable to store latest sensor reading
-sensor_data = {"tds": None, "turbidity": None}
+# Load trained models
+model = load_model("pothole_detector.h5")
+water_logging_model = load_model("water_logging_model.h5")  # New model
 
-# Background thread to read from Arduino
-def read_serial():
-    global sensor_data
+def detect_blurriness(image_path):
+    img = cv2.imread(image_path)
+    gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    laplacian = cv2.Laplacian(gray_img, cv2.CV_64F)
+    variance = laplacian.var()
+    return variance
+
+def predict_image(image_path):
+    img = image.load_img(image_path, target_size=(128, 128))
+    img_array = image.img_to_array(img) / 255.0
+    img_array = np.expand_dims(img_array, axis=0)
+    prediction = model.predict(img_array)
+    return prediction[0][0] > 0.5
+
+# New: Prediction function for water logging
+def predict_water_logging(image_path):
+    img = image.load_img(image_path, target_size=(128, 128))
+    img_array = image.img_to_array(img) / 255.0
+    img_array = np.expand_dims(img_array, axis=0)
+    prediction = water_logging_model.predict(img_array)
+    return prediction[0][0] > 0.5
+
+@app.route('/verifyPothole', methods=['POST'])
+def verify_pothole():
     try:
-        ser = serial.Serial('/dev/ttyUSB0', 9600, timeout=1)
-        while True:
-            try:
-                line = ser.readline().decode().strip()
-                if line:
-                    data = json.loads(line)
-                    sensor_data.update(data)
-            except Exception as e:
-                print("Serial JSON error:", e)
+        data = request.get_json()
+        image_data = data['image']
+        email = data['email']
+        # Decode base64 image
+        image_data = base64.b64decode(image_data.split(',')[1])
+        image_path = 'uploads/pothole_test.jpg'
+        with open(image_path, 'wb') as f:
+            f.write(image_data)
+        # Detect blurriness
+        variance = detect_blurriness(image_path)
+        if variance < 100:
+            return jsonify(success=False, message='The uploaded image is blurred. Please upload a clear image.')
+        # Predict pothole
+        is_pothole = bool(predict_image(image_path))  # Convert to standard Python boolean
+        return jsonify(success=True, isPothole=is_pothole)
     except Exception as e:
-        print("Could not connect to Arduino:", e)
+        app.logger.error(f"Error processing image: {e}")
+        return jsonify(success=False, message='Failed to process image')
 
-# Start serial reading in the background
-Thread(target=read_serial, daemon=True).start()
 
-# Webpage to get location and upload
-HTML_PAGE = '''
-<!DOCTYPE html>
-<html>
-<head><title>Water Logger - your_email</title></head>
-<body>
-    <h2>Tap to Send Water Sensor + GPS Data</h2>
-    <button onclick="getLocation()">Send Data</button>
+# New: Route for verifying water logging
 
-    <script>
-        function getLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(sendData, showError, {
-                    enableHighAccuracy: true
-                });
-            } else {
-                alert("Geolocation not supported by this device.");
-            }
-        }
+app.route('/verifyWaterLogging', methods=['POST'])
+@app.route('/verifyWaterLogging', methods=['POST'])
+def verify_water_logging():
+    try:
+        data = request.get_json()
+        image_data = data['image']
+        email = data['email']
+        # Decode base64 image
+        image_data = base64.b64decode(image_data.split(',')[1])
+        image_path = 'uploads/water_logging_test.jpg'
+        with open(image_path, 'wb') as f:
+            f.write(image_data)
+        # Detect blurriness
+        variance = detect_blurriness(image_path)
+        if variance < 100:
+            return jsonify(success=False, message='The uploaded image is blurred. Please upload a clear image.')
+        # Predict water logging
+        is_water_logged = bool(predict_water_logging(image_path))  # Convert to standard Python boolean
+        return jsonify(success=True, isWaterLogged=is_water_logged)
+    except Exception as e:
+        app.logger.error(f"Error processing image: {e}")
+        return jsonify(success=False, message='Failed to process image')
 
-        function sendData(position) {
-            const payload = {
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude,
-                accuracy: position.coords.accuracy
-            };
-
-            fetch("/upload", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
-            })
-            .then(res => res.json())
-            .then(data => {
-                alert("Data uploaded:\\n" + JSON.stringify(data.data, null, 2));
-            })
-            .catch(err => alert("Error uploading data: " + err));
-        }
-
-        function showError(error) {
-            alert("Location error: " + error.message);
-        }
-    </script>
-</body>
-</html>
-'''
-
-@app.route('/')
-def index():
-    return render_template_string(HTML_PAGE)
-
-@app.route('/upload', methods=['POST'])
-def upload():
-    data = request.get_json()
-    record = {
-        "timestamp": datetime.utcnow(),
-        "latitude": data.get("latitude"),
-        "longitude": data.get("longitude"),
-        "accuracy": data.get("accuracy"),
-        "tds": sensor_data.get("tds"),
-        "turbidity": sensor_data.get("turbidity")
-    }
-    collection.insert_one(record)
-    return jsonify({"status": "success", "data": record})
 
 if __name__ == '__main__':
-    print("Visit http://<your-RPi-IP>:5000 on your phone browser")
+    if not os.path.exists('uploads'):
+        os.makedirs('uploads')
     app.run(host='0.0.0.0', port=5000)
