@@ -5,6 +5,7 @@ const cors = require('cors');
 const multer = require('multer'); // For handling file uploads
 const fs = require('fs');
 const { exec } = require('child_process'); // To run Python script
+const axios = require('axios');
 
 const app = express();
 const port = 3000;
@@ -72,53 +73,26 @@ app.post('/loginUser', async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to login user', error });
   }
 });
-
-app.post('/verifyPothole', upload.single('image'), async (req, res) => {
+app.post('/verifyPothole', async (req, res) => {
   try {
-    const email = req.body.email;  // Ensure the frontend sends user email
-    const base64Data = req.body.image.replace(/^data:image\/jpeg;base64,/, "");
-    const imagePath = `uploads/pothole_test.jpg`;
+    const email = req.body.email;
+    const base64Data = req.body.image;
 
-    fs.writeFileSync(imagePath, base64Data, 'base64');
-
-    const userCollection = db.collection('users');
-    const user = await userCollection.findOne({ email });
-
-    // Check if user is blocked
-    if (user && user.blockedUntil && new Date(user.blockedUntil) > new Date()) {
-      return res.status(403).json({ success: false, message: 'User temporarily blocked. Try again later.' });
-    }
-
-    exec(`python3 predict.py ${imagePath}`, async (error, stdout, stderr) => {
-      if (error) {
-        console.error('Error running model:', stderr);
-        return res.status(500).json({ success: false, message: 'Model execution error' });
-      }
-
-      const result = stdout.trim();
-      const isPothole = result.includes('Pothole detected');
-
-      if (!isPothole) {
-        let failedAttempts = user?.failedAttempts ? user.failedAttempts + 1 : 1;
-
-        if (failedAttempts >= 3) {
-          const blockTime = new Date();
-          blockTime.setDate(blockTime.getDate() + 1);
-          await userCollection.updateOne({ email }, { $set: { blockedUntil: blockTime, failedAttempts: 0 } }, { upsert: true });
-
-          return res.status(403).json({ success: false, message: 'Too many failed attempts. User blocked for 24 hours.' });
-        } else {
-          await userCollection.updateOne({ email }, { $set: { failedAttempts } }, { upsert: true });
-        }
-
-        return res.json({ success: true, isPothole: false, message: `Attempt ${failedAttempts}/3` });
-      } else {
-        await userCollection.updateOne({ email }, { $set: { failedAttempts: 0 } });
-      }
-
-      res.json({ success: true, isPothole });
+    const response = await axios.post('http://localhost:5000/verifyPothole', {
+      image: base64Data,
+      email: email
     });
 
+    const data = response.data;
+    if (data.success) {
+      if (data.isPothole) {
+        res.json({ success: true, isPothole: true });
+      } else {
+        res.json({ success: true, isPothole: false });
+      }
+    } else {
+      res.status(400).json({ success: false, message: data.message });
+    }
   } catch (error) {
     console.error('Error:', error);
     res.status(500).json({ success: false, message: 'Failed to process image' });
@@ -201,6 +175,27 @@ app.put('/markAsSolved/:id', async (req, res) => {
   } catch (error) {
     console.error('Error marking complaint as solved:', error);
     res.status(500).json({ message: 'Failed to mark complaint as solved', error });
+  }
+});
+
+app.post('/verifyWaterLogging', async (req, res) => {
+  try {
+    const { email, image } = req.body;
+
+    const response = await axios.post('http://localhost:5000/verifyWaterLogging', {
+      image,
+      email
+    });
+
+    const data = response.data;
+    if (data.success) {
+      res.json({ success: true, isWaterLogged: data.isWaterLogged });
+    } else {
+      res.status(400).json({ success: false, message: data.message });
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ success: false, message: 'Failed to process image' });
   }
 });
 
