@@ -19,7 +19,7 @@
             <h2>How It Works</h2>
             <ul>
                 <li>1. Log in or register to access the system.</li>
-                about any civic issue.</li>
+                <li>2. Lodge a complaint about any civic issue.</li>
                 <li>3. Track the status of your complaint.</li>
                 <li>4. Municipal authorities will address your concerns.</li>
             </ul>
@@ -120,11 +120,12 @@
                     </select><br><br>
 
                     <label for="complaint-description">Complaint Description:</label>
-                    <textarea id="complaint-description" name="complaint-description" rows="4"
-                        required></textarea><br><br>
+                    <textarea id="complaint-description" name="complaint-description" rows="4" required></textarea>
+                    <button type="button" id="start-recording">🎤</button>
+                    <p id="status-message"></p>
 
                     <button type="button" onclick="openCamera()">Open Camera</button><br><br>
-
+					<button type="button" onclick="uploadImage()">Upload Image</button> <!-- New Upload Button -->
                     <div id="camera-container" class="hidden">
                         <video id="video" autoplay></video>
                         <button type="button" onclick="capture()">Capture</button>
@@ -198,6 +199,26 @@
         <p>&copy; 2024 Civic Issues Reporting Portal. All Rights Reserved.</p>
     </footer>
 
+    <button id="toggle-chatbot">Chat with us</button>
+
+<div class="chat-container" id="chat-container" style="display: none;">
+    <div class="chat-header">
+        <h2>Chatbot</h2>
+        <button id="close-chatbot">✖</button> <!-- Close button -->
+    </div>
+    <div class="chat-box" id="chat-box">
+        <div class="chat-message bot">
+            <span>👾</span> Hello! How can I assist you today?
+        </div>
+    </div>
+    <div class="chat-input">
+        <input type="text" id="user-input" placeholder="Type a message..." autocomplete="off">
+        <button id="send-button">Send</button>
+    </div>
+</div>
+
+
+    <script src="chatbot.js"></script>
     <script src="scripts.js"></script> <!-- Link to your JavaScript file -->
 </body>
 
