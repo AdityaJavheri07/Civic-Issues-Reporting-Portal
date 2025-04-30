@@ -178,26 +178,26 @@ app.put('/markAsSolved/:id', async (req, res) => {
   }
 });
 
-app.post('/verifyWaterLogging', async (req, res) => {
+app.get('/liveWaterQuality', async (req, res) => {
   try {
-    const { email, image } = req.body;
+    const latest = await db.collection('waterQuality')
+      .find({})
+      .sort({ timestamp: -1 })
+      .limit(1)
+      .toArray();
 
-    const response = await axios.post('http://localhost:5000/verifyWaterLogging', {
-      image,
-      email
-    });
-
-    const data = response.data;
-    if (data.success) {
-      res.json({ success: true, isWaterLogged: data.isWaterLogged });
+    if (latest.length > 0) {
+      res.status(200).json(latest[0]);
     } else {
-      res.status(400).json({ success: false, message: data.message });
+      res.status(404).json({ message: "No data found" });
     }
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to process image' });
+  } catch (err) {
+    console.error("Error fetching water quality:", err);
+    res.status(500).json({ message: "Server error" });
   }
 });
+
+
 
 // Start the server
 app.listen(port, () => {
