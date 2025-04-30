@@ -164,34 +164,49 @@
         </div>
 
         <!-- Municipal Corporation Dashboard -->
-        <div id="municipal-dashboard" class="frame municipal-dashboard-frame hidden">
-            <h1>Municipal Corporation Dashboard</h1>
-            <div class="dashboard-sections">
-                <div class="section" id="municipal-corp-section">
-                    <h2>Municipal Corporation Complaints</h2>
-                    <div class="table-container">
-                        <table id="municipal-complaints-table">
-                            <thead>
-                                <tr>
-                                    <th style="width: 10%;">Sr. No.</th>
-                                    <th style="width: 20%;">Name</th> <!-- Name of the complaint type -->
-                                    <th style="width: 25%;">Description</th>
-                                    <th style="width: 10%;">Status</th>
-                                    <th style="width: 15%;">Created At</th>
-									<th style="width: 15%;">Time Remaining</th>
-                                    <th style="width: 10%;">Image</th>
-                                    <th style="width: 10%;">Location</th>
-                                    <th style="width: 10%;">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="municipal-complaints-table-body">
-                                <!-- Municipal complaints data will be populated here -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+<div id="municipal-dashboard" class="frame municipal-dashboard-frame hidden">
+    <h1>Municipal Corporation Dashboard</h1>
+    <div class="dashboard-sections">
+        <div class="section" id="municipal-corp-section">
+            <h2>Municipal Corporation Complaints</h2>
+
+            <!-- View Water Quality Button -->
+            <button onclick="showWaterQuality()" style="margin-bottom: 1rem;">View Water Quality</button>
+
+            <!-- Hidden Live Water Quality Panel -->
+            <div id="live-water-quality" class="hidden" style="padding: 1rem; border: 2px solid #ccc; margin: 1rem 0;">
+                <h2>Live Water Quality</h2>
+                <p><strong>TDS:</strong> <span id="tds-value">--</span> ppm</p>
+                <p><strong>Turbidity:</strong> <span id="turbidity-value">--</span>%</p>
+                <p><strong>Status:</strong> <span id="status-label">--</span></p>
+                <p><strong>Timestamp:</strong> <span id="timestamp">--</span></p>
+                <p><strong>Location:</strong> Lat: 19.0673, Lon: 72.9892</p>
+            </div>
+
+            <div class="table-container">
+                <table id="municipal-complaints-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 10%;">Sr. No.</th>
+                            <th style="width: 20%;">Name</th> <!-- Name of the complaint type -->
+                            <th style="width: 25%;">Description</th>
+                            <th style="width: 10%;">Status</th>
+                            <th style="width: 15%;">Created At</th>
+                            <th style="width: 15%;">Time Remaining</th>
+                            <th style="width: 10%;">Image</th>
+                            <th style="width: 10%;">Location</th>
+                            <th style="width: 10%;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="municipal-complaints-table-body">
+                        <!-- Municipal complaints data will be populated here -->
+                    </tbody>
+                </table>
             </div>
         </div>
+    </div>
+</div>
+
     </div>
 
     <footer class="footer">
