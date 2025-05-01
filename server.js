@@ -13,6 +13,9 @@ const port = 3000;
 // Middleware
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(cors());
+const path = require('path');
+app.use(express.static(path.join(__dirname, 'public')));
+
 
 // Replace with your MongoDB connection string
 const uri = "mongodb://localhost:27017";
