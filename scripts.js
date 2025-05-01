@@ -214,7 +214,7 @@ function registerUser(event) {
         verificationCode: enteredCode
     };
 
-    fetch('http://localhost:3000/registerUser', {
+    fetch('http://192.168.102.38:3000/registerUser', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData)
@@ -269,7 +269,7 @@ function loginUser(event) {
     password: password
   };
 
-  fetch('http://localhost:3000/loginUser', {
+  fetch('http://192.168.102.38:3000/loginUser', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(loginData)
@@ -389,7 +389,7 @@ function submitComplaint(event) {
     if (complaintName === "pothole") {
         let failedAttempts = parseInt(localStorage.getItem(`failedAttempts_${userEmail}`) || "0");
 
-        fetch('http://localhost:3000/verifyPothole', {
+        fetch('http://192.168.102.38:3000/verifyPothole', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ image: imageData, email: userEmail }) // Including user email
@@ -417,7 +417,7 @@ function submitComplaint(event) {
 
     } else if (complaintName === "waterlogging") {
         // New: water logging detection logic
-        fetch('http://localhost:3000/verifyWaterLogging', {
+        fetch('http://192.168.102.38:3000/verifyWaterLogging', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ image: imageData, email: userEmail }) // Including user email
@@ -445,7 +445,7 @@ function submitComplaint(event) {
 
 // Function to submit complaint to backend
 function submitToBackend(complaintName, complaintDescription, imageData) {
-    fetch('http://localhost:3000/submitComplaint', {
+    fetch('http://192.168.102.38:3000/submitComplaint', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -471,7 +471,7 @@ function submitToBackend(complaintName, complaintDescription, imageData) {
 async function verifyPothole(imageData) {
     const email = localStorage.getItem("userEmail");
 
-    let response = await fetch("http://localhost:3000/verifyPothole", {
+    let response = await fetch("http://192.168.102.38:3000/verifyPothole", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image: imageData, email })
@@ -519,7 +519,7 @@ function showLoggedComplaints() {
 
 // Function to fetch and display logged complaints
 function displayLoggedComplaints() {
-    fetch('http://localhost:3000/complaints') // Fetch complaints from your server
+    fetch('http://192.168.102.38:3000/complaints') // Fetch complaints from your server
         .then(response => response.json())
         .then(complaints => {
             const loggedComplaintsBody = document.getElementById('logged-complaints-body');
@@ -547,7 +547,18 @@ function openCamera() {
     const cameraContainer = document.getElementById('camera-container');
     cameraContainer.classList.remove('hidden');
 
-    navigator.mediaDevices.getUserMedia({ video: true })
+    // Try to access back camera first (mobile), fallback to any camera if it fails
+    navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { exact: "environment" } }
+    })
+    .then(stream => {
+        const video = document.getElementById('video');
+        video.srcObject = stream;
+        video.play();
+    })
+    .catch(() => {
+        // Fallback: Use any available camera (PCs or unsupported mobile browsers)
+        navigator.mediaDevices.getUserMedia({ video: true })
         .then(stream => {
             const video = document.getElementById('video');
             video.srcObject = stream;
@@ -556,7 +567,9 @@ function openCamera() {
         .catch(err => {
             alert('Unable to access camera: ' + err);
         });
+    });
 }
+
 
 
 function capture() {
@@ -626,11 +639,11 @@ function capture() {
     let complaintDescription = "";
 
     if (complaintType === "pothole") {
-        endpoint = "http://localhost:5000/verifyPothole";
+        endpoint = "http://192.168.102.38:5000/verifyPothole";
         resultKey = "isPothole";
         complaintDescription = "Pothole detected from captured image.";
     } else if (complaintType === "waterlogging") {
-        endpoint = "http://localhost:5000/verifyWaterLogging";
+        endpoint = "http://192.168.102.38:5000/verifyWaterLogging";
         resultKey = "isWaterLogged";
         complaintDescription = "Water logging detected from captured image.";
     }
@@ -732,9 +745,9 @@ async function uploadImage() {
             // Set the endpoint based on normalized complaint type
             let endpoint = '';
             if (complaintType.toLowerCase() === 'waterlogging') {
-                endpoint = 'http://localhost:5000/verifyWaterLogging';
+                endpoint = 'http://192.168.102.38:5000/verifyWaterLogging';
             } else {
-                endpoint = 'http://localhost:5000/verifyPothole'; // default
+                endpoint = 'http://192.168.102.38:5000/verifyPothole'; // default
             }
 
             try {
@@ -833,7 +846,7 @@ function resetForms() {
 
 // Function to fetch complaints from the server and display them on the dashboard
 function loadMunicipalDashboard() {
-    fetch('http://localhost:3000/complaints')
+    fetch('http://192.168.102.38:3000/complaints')
         .then(response => response.json())
         .then(complaints => {
             const municipalTableBody = document.getElementById('municipal-complaints-table-body');
@@ -925,7 +938,7 @@ function showLoggedComplaints() {
     document.getElementById('logged-complaints').classList.remove('hidden'); // Show logged complaints section
 
     // Fetch and display logged complaints
-    fetch('http://localhost:3000/complaints')
+    fetch('http://192.168.102.38:3000/complaints')
         .then(response => response.json())
         .then(complaints => {
             const loggedComplaintsBody = document.getElementById('logged-complaints-body');
@@ -970,7 +983,7 @@ function submitImage(event) {
             };
 
             try {
-                const response = await fetch('http://localhost:3000/submitComplaint', {
+                const response = await fetch('http://192.168.102.38:3000/submitComplaint', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -996,7 +1009,7 @@ function submitImage(event) {
 
 // Function to mark complaint as solved (implement as needed)
 function markAsSolved(complaintId) {
-    fetch(`http://localhost:3000/markAsSolved/${complaintId}`, {
+    fetch(`http://192.168.102.38:3000/markAsSolved/${complaintId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
     })
@@ -1086,7 +1099,7 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 function updateLiveWaterQuality() {
-    fetch('http://localhost:3000/liveWaterQuality')
+    fetch('http://192.168.102.38:3000/liveWaterQuality')
         .then(response => response.json())
         .then(data => {
             document.getElementById('tds-value').textContent = data.tds;
@@ -1114,7 +1127,7 @@ function showWaterQuality() {
     const panel = document.getElementById("live-water-quality");
     panel.classList.remove("hidden");
 
-    fetch('http://localhost:3000/liveWaterQuality')
+    fetch('http://192.168.102.38:3000/liveWaterQuality')
         .then(response => response.json())
         .then(data => {
             document.getElementById('tds-value').textContent = data.tds;
